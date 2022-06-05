@@ -2,41 +2,50 @@
 
 <head>
     <title>Websocket App</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@3.4.1/dist/css/bootstrap.min.css" integrity="sha384-HSMxcRTRxnN+Bdg0JdbxYKrThecOKuH5zCYotlSAcp1+c8xmyTe9GYg1l9a69psu" crossorigin="anonymous">
 </head>
 
 <body>
     <header>
         <h1>Welcome to websockets live updating</h1>
-        <p><b>Logged in as: </b><span id="user"></span></p>
-        <input id="message"></input>
-        <button id="log"></button>
+        <p>
+            <b>Logged in as: </b><span id="user"></span>
+            <input id="login"></input>
+            <button id="log"></button>
+        </p>
         <div id="status-messages"></div>
     </header>
-    <main id="messages">
-    </main>
+    <main id="messages"></main>
+    <footer>
+        <input id="message"></input>
+    </footer>
     <script>
             const input = document.getElementById('message');
             const main = document.getElementById('messages');
             const statusMessages = document.getElementById('status-messages');
             const logButton = document.getElementById('log');
+            const logIn = document.getElementById('login');
             const userEl = document.getElementById('user');
             let [ user ] = document.cookie.match(/(?<=(^|; *)user=)(.*?)(?=(;.*|$))/) || [];
             log();
 
             logButton.addEventListener('click', () => {
-                user = user ? '' : encodeURIComponent(input.value);
-                input.value = '';
+                user = user ? '' : encodeURIComponent(login.value);
+                login.value = '';
                 log();
+            });
+            logIn.addEventListener('keypress', () => {
+                if (event.key === 'Enter') {
+                    user = user ? '' : encodeURIComponent(login.value);
+                    login.value = '';
+                    log();
+                }
             });
             input.addEventListener('keypress', sendMessage);
             getMessages(0);
             
             function sendMessage(event) {
-                if (event.key === "Enter") {
-                    if (!user) {
-                        user = encodeURIComponent(input.value);
-                        return log();
-                    }
+                if (event.key === 'Enter') {
                     console.log(input.value);
                     const options = {
                         body: JSON.stringify({ message: input.value }),
@@ -76,7 +85,9 @@
                     { button: 'Log out', placeholder: 'Type your message and hit enter to send' },
                 ];
                 const { button, placeholder } = logText[Number(!!user)];
-                userEl.innerText = user || '<not logged in>';
+                logIn.style.display = user ? 'none' : 'block';
+                message.style.display = !user ? 'none' : 'block';
+                userEl.innerText = user;
                 logButton.innerText = button;
                 input.placeholder = placeholder;
                 document.cookie = `user=${ user }; expires=${ new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toUTCString() }`;
