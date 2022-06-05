@@ -1,36 +1,45 @@
 const express = require('express');
 const app = express();
 
-const messages = [{ createdAt: 1654411042048, message: 'post1', user: 'TomY8s' }];
+const messages = [];
 
 app.use(require('cors')());
 app.use(express.json());
 app.use(express.static('public'));
+app.use((req, res, next) => {
+    console.log(`${ new Date().toISOString() } ${ res.statusCode } ${ req.url }`);
+    next();
+});
 
 app.get('/post', send);
 app.post('/post', save);
 
 function save(req, res) {
     const [ user ] = req.headers.cookie.match(/(?<=(^|; *)user=)(.*?)(?=(;.*|$))/) || [];
-    console.log(user);
-    console.log(req.body);
+    const { createdAt, message } = req.body;
+    const newMessage = {
+        createdAt,
+        message,
+        user,
+    };
 
-    messages.push({
-        createdAt: Date.now(),
-        message: req.body.message,
-        user: user,
-    });
-    send(...arguments);
+    messages.push(newMessage);
+    res.send({ messages: getMessagesFrom(createdAt, messages), sentAt: Date.now() });
 }
 
 function send(req, res) {
-    const returnEmpty = setTimeout(() => res.send({ messages: [], sentAt: Date.now() }), 15000);
+    let checker
+    const returnEmpty = setTimeout(() => {
+        clearInterval(checker);
+        res.send({ messages: [], sentAt: Date.now() })
+    }, 5000);
     const { from } = req.query;
 
     
-    const checker = setInterval(() => {
-        const newMessages = getMessagesFrom(from, messages);
-        if (messages.length > 0) {
+    checker = setInterval(() => {
+        const newMessages = getMessagesFrom(Number(from), messages);
+        if (newMessages.length > 0) {
+            console.log(newMessages.length);
             clearTimeout(returnEmpty);
             clearInterval(checker);
             res.send({ messages: newMessages, sentAt: Date.now() });
@@ -40,7 +49,7 @@ function send(req, res) {
 
 function getMessagesFrom(from = 0, messages) {
     for (let i = Math.max(messages.length - 10, 0); i < messages.length; i++) {
-        if (messages[i].createdAt > from) {
+        if (messages[i].createdAt >= from) {
             return messages.slice(i);
         }
     }

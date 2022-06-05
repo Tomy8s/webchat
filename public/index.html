@@ -46,22 +46,21 @@
             
             function sendMessage(event) {
                 if (event.key === 'Enter') {
-                    console.log(input.value);
                     const options = {
-                        body: JSON.stringify({ message: input.value }),
+                        body: JSON.stringify({ message: input.value, createdAt: Date.now() }),
                         headers: {
                             'content-type': 'application/json',
                         },
                         method: 'POST',
                     };
-                    fetch('http://localhost:3323/post', options);
+                    fetch('/post', options);
                     input.value = '';
                 }
             }
             
             async function getMessages(from) {
                 try {
-                    const { sentAt, messages } = await (await fetch('http://localhost:3323/post?from=' + from)).json();
+                    const { sentAt, messages } = await (await fetch('/post?from=' + from)).json();
                     clearError('connection-error');
                     getMessages(sentAt);
                     messages.forEach(renderMessage);
