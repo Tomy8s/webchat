@@ -48,4 +48,4 @@ function getMessagesFrom(from = 0, messages) {
     return [];
 }
 
-app.listen(3323, console.log('serving...'));
+app.listen(process.env.PORT || 3323, console.log('serving...'));
