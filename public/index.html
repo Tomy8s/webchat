@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+
+<head>
+    <title>Websocket App</title>
+</head>
+
+<body>
+    <header>
+        <h1>Welcome to websockets live updating</h1>
+        <p><b>Logged in as: </b><span id="user"></span></p>
+        <input id="message"></input>
+        <button id="log"></button>
+        <div id="status-messages"></div>
+    </header>
+    <main id="messages">
+    </main>
+    <script>
+            const input = document.getElementById('message');
+            const main = document.getElementById('messages');
+            const statusMessages = document.getElementById('status-messages');
+            const logButton = document.getElementById('log');
+            const userEl = document.getElementById('user');
+            let [ user ] = document.cookie.match(/(?<=(^|; *)user=)(.*?)(?=(;.*|$))/) || [];
+            log();
+
+            logButton.addEventListener('click', () => {
+                user = user ? '' : encodeURIComponent(input.value);
+                input.value = '';
+                log();
+            });
+            input.addEventListener('keypress', sendMessage);
+            getMessages(0);
+            
+            function sendMessage(event) {
+                if (event.key === "Enter") {
+                    if (!user) {
+                        user = encodeURIComponent(input.value);
+                        return log();
+                    }
+                    console.log(input.value);
+                    const options = {
+                        body: JSON.stringify({ message: input.value }),
+                        headers: {
+                            'content-type': 'application/json',
+                        },
+                        method: 'POST',
+                    };
+                    fetch('http://localhost:3323/post', options);
+                    input.value = '';
+                }
+            }
+            
+            async function getMessages(from) {
+                try {
+                    const { sentAt, messages } = await (await fetch('http://localhost:3323/post?from=' + from)).json();
+                    clearError('connection-error');
+                    getMessages(sentAt);
+                    messages.forEach(renderMessage);
+                } catch (error) {
+                    console.error(error);
+                    showError('connection-error', 'Error connecting to server. Trying again...')
+                    setTimeout(() => getMessages(from), 5000);
+                }
+            }
+
+            function renderMessage({ createdAt, message, user }) {
+                const messageElement = document.createElement('p');
+                messageElement.innerText = `${ user }: ${ message }\n${ new Date(createdAt) }`
+                main.append(messageElement);
+            }
+
+            function log() {
+                console.log(user);
+                const logText = [
+                    { button: 'Log in', placeholder: 'Type your name and hit enter to send' },
+                    { button: 'Log out', placeholder: 'Type your message and hit enter to send' },
+                ];
+                const { button, placeholder } = logText[Number(!!user)];
+                userEl.innerText = user || '<not logged in>';
+                logButton.innerText = button;
+                input.ariaPlaceholder = placeholder;
+                document.cookie = `user=${ user }; expires=${ new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toUTCString() }`;
+            }
+
+            function clearError(errorId) {
+                const errorMessage = document.getElementById(errorId);
+                if (errorMessage) {
+                    errorMessage.remove()
+                }
+            }
+
+            function showError(errorId, errorMsg) {
+                if (!document.getElementById(errorId)) {
+                        const errorEl = document.createElement('p');
+                        errorEl.className = 'error'
+                        errorEl.id = errorId;
+                        errorEl.innerText = errorMsg;
+
+                        statusMessages.append(errorEl);
+                    }
+            }
+    </script>
+</body>
